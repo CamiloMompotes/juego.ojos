@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>👁️ Semáforo Visual — Cuidado de Ojos</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0d0d;
+  --surface: #161616;
+  --card: #1c1c1c;
+  --border: rgba(255,255,255,0.07);
+  --text: #f0f0f0;
+  --muted: #666;
+
+  --red: #ff3b3b;
+  --red-glow: rgba(255,59,59,0.35);
+  --red-dim: rgba(255,59,59,0.1);
+
+  --yellow: #ffc107;
+  --yellow-glow: rgba(255,193,7,0.35);
+  --yellow-dim: rgba(255,193,7,0.1);
+
+  --green: #00e676;
+  --green-glow: rgba(0,230,118,0.35);
+  --green-dim: rgba(0,230,118,0.1);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Ruido de fondo */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  pointer-events:none; z-index:0;
+}
+
+/* ══ PANTALLA INICIO ══════════════════════════════════════ */
+#screen-start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 24px;
+  gap: 32px;
+  position: relative; z-index:1;
+}
+
+.traffic-light-deco {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.tl-pole {
+  width: 8px;
+  height: 60px;
+  background: #333;
+  border-radius: 4px;
+}
+
+.tl-box {
+  background: #222;
+  border: 2px solid #333;
+  border-radius: 20px;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+.tl-light {
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.08);
+  transition: box-shadow 0.4s;
+}
+
+.tl-light.red-on   { background: var(--red);    box-shadow: 0 0 30px 10px var(--red-glow),    inset 0 2px 8px rgba(255,255,255,0.2); }
+.tl-light.yellow-on{ background: var(--yellow);  box-shadow: 0 0 30px 10px var(--yellow-glow), inset 0 2px 8px rgba(255,255,255,0.2); }
+.tl-light.green-on { background: var(--green);   box-shadow: 0 0 30px 10px var(--green-glow),  inset 0 2px 8px rgba(255,255,255,0.2); }
+.tl-light.off      { background: #1a1a1a; }
+
+.brand {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.8rem, 8vw, 5rem);
+  letter-spacing: 6px;
+  line-height: 1;
+  text-align: center;
+}
+
+.brand span.r { color: var(--red); }
+.brand span.y { color: var(--yellow); }
+.brand span.g { color: var(--green); }
+
+.tagline {
+  color: var(--muted);
+  font-size: 0.95rem;
+  text-align: center;
+  max-width: 380px;
+  line-height: 1.6;
+}
+
+/* Leyenda del semáforo */
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 440px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+}
+
+.legend-dot {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-dot.red    { background: var(--red);    box-shadow: 0 0 10px var(--red-glow); }
+.legend-dot.yellow { background: var(--yellow);  box-shadow: 0 0 10px var(--yellow-glow); }
+.legend-dot.green  { background: var(--green);   box-shadow: 0 0 10px var(--green-glow); }
+
+.legend-text strong { display: block; font-size: 0.9rem; margin-bottom: 2px; }
+.legend-text span   { font-size: 0.78rem; color: var(--muted); }
+
+.btn-start {
+  background: var(--green);
+  color: #000;
+  border: none;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 4px;
+  padding: 16px 56px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 30px var(--green-glow);
+}
+
+.btn-start:hover {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 0 50px var(--green-glow);
+}
+
+/* ══ PANTALLA JUEGO ═══════════════════════════════════════ */
+#screen-game {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px 16px 40px;
+  gap: 20px;
+  position: relative; z-index:1;
+}
+
+/* HUD */
+.hud {
+  width: 100%; max-width: 620px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 20px;
+}
+
+.hud-block { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.hud-label { font-size:0.6rem; letter-spacing:3px; text-transform:uppercase; color:var(--muted); }
+.hud-val { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; line-height:1; }
+.hud-val.green { color:var(--green); }
+
+.lives-row { display:flex; gap:4px; font-size:1.2rem; }
+
+/* Timer */
+.timer-wrap { position:relative; width:60px; height:60px; }
+.timer-svg { width:60px; height:60px; transform:rotate(-90deg); }
+.t-bg  { fill:none; stroke:rgba(255,255,255,0.06); stroke-width:4; }
+.t-ring{
+  fill:none; stroke:var(--green); stroke-width:4;
+  stroke-linecap:round;
+  stroke-dasharray:163; stroke-dashoffset:0;
+  transition: stroke-dashoffset 0.1s linear, stroke 0.3s;
+}
+.timer-num {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bebas Neue',sans-serif; font-size:1.2rem; color:var(--green);
+}
+
+/* Barra progreso */
+.prog-wrap { width:100%; max-width:620px; }
+.prog-label {
+  font-size:0.65rem; letter-spacing:3px; text-transform:uppercase;
+  color:var(--muted); margin-bottom:6px;
+}
+.prog-bar { height:4px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden; }
+.prog-fill { height:100%; border-radius:10px; transition:width 0.5s ease; }
+
+/* Semáforo lateral — decorativo en juego */
+.game-layout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px;
+  width: 100%;
+  max-width: 620px;
+  align-items: start;
+}
+
+.semaforo-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  position: sticky;
+  top: 20px;
+}
+
+.sg-box {
+  background: #1a1a1a;
+  border: 2px solid #2a2a2a;
+  border-radius: 14px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sg-light {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: #111;
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+
+.sg-light.active-red    { background:var(--red);    box-shadow:0 0 18px 6px var(--red-glow); }
+.sg-light.active-yellow { background:var(--yellow);  box-shadow:0 0 18px 6px var(--yellow-glow); }
+.sg-light.active-green  { background:var(--green);   box-shadow:0 0 18px 6px var(--green-glow); }
+
+.sg-pole { width:6px; height:40px; background:#2a2a2a; border-radius:3px; }
+
+/* Tarjeta */
+.card-col { display:flex; flex-direction:column; gap:16px; }
+
+.game-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 30px 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.card-glow-ring {
+  position:absolute; inset:-2px;
+  border-radius: 22px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card-inner { position:relative; z-index:1; }
+
+.card-emoji   { font-size:64px; display:block; margin-bottom:14px; animation:float 3s ease-in-out infinite; }
+.card-cat     { font-size:0.6rem; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+.card-title   { font-family:'Bebas Neue',sans-serif; font-size:clamp(1.4rem,4vw,1.9rem); letter-spacing:1px; margin-bottom:8px; line-height:1.1; }
+.card-desc    { font-size:0.85rem; color:#888; line-height:1.6; }
+
+@keyframes float {
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-7px);}
+}
+
+/* Botones semáforo */
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.btn-sem {
+  border: none;
+  border-radius: 14px;
+  padding: 14px 8px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.18s, box-shadow 0.18s, filter 0.2s;
+  border: 1.5px solid transparent;
+}
+
+.btn-sem .dot {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+}
+
+.btn-sem:hover { transform: translateY(-4px) scale(1.04); }
+.btn-sem:active { transform: scale(0.96); }
+
+.btn-red {
+  background: var(--red-dim);
+  border-color: rgba(255,59,59,0.3);
+  color: var(--red);
+}
+.btn-red .dot    { background:var(--red); box-shadow:0 0 10px var(--red-glow); }
+.btn-red:hover   { box-shadow:0 8px 30px var(--red-glow); background:rgba(255,59,59,0.18); }
+
+.btn-yellow {
+  background: var(--yellow-dim);
+  border-color: rgba(255,193,7,0.3);
+  color: var(--yellow);
+}
+.btn-yellow .dot  { background:var(--yellow); box-shadow:0 0 10px var(--yellow-glow); }
+.btn-yellow:hover { box-shadow:0 8px 30px var(--yellow-glow); background:rgba(255,193,7,0.18); }
+
+.btn-green {
+  background: var(--green-dim);
+  border-color: rgba(0,230,118,0.3);
+  color: var(--green);
+}
+.btn-green .dot  { background:var(--green); box-shadow:0 0 10px var(--green-glow); }
+.btn-green:hover { box-shadow:0 8px 30px var(--green-glow); background:rgba(0,230,118,0.18); }
+
+/* Animaciones tarjeta */
+@keyframes card-in {
+  from { opacity:0; transform:translateY(24px) scale(0.96); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+@keyframes shake {
+  0%,100%{transform:translateX(0);}
+  20%{transform:translateX(-8px);}
+  40%{transform:translateX(8px);}
+  60%{transform:translateX(-5px);}
+  80%{transform:translateX(5px);}
+}
+.card-enter { animation: card-in 0.45s cubic-bezier(.22,1,.36,1) both; }
+.card-shake { animation: shake 0.4s ease; }
+
+/* ══ OVERLAY FEEDBACK ════════════════════════════════════ */
+.feedback-overlay {
+  position: fixed; inset:0;
+  z-index: 200;
+  display: flex; align-items:center; justify-content:center;
+  padding: 20px;
+  opacity: 0; pointer-events:none;
+  transition: opacity 0.25s;
+  backdrop-filter: blur(14px);
+}
+
+.feedback-overlay.show { opacity:1; pointer-events:all; }
+
+.fb-card {
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 36px 30px;
+  max-width: 460px; width:100%;
+  text-align:center;
+  border: 1.5px solid transparent;
+  position:relative;
+  overflow:hidden;
+}
+
+.fb-card::before {
+  content:'';
+  position:absolute; top:-40px; left:50%; transform:translateX(-50%);
+  width:180px; height:180px;
+  border-radius:50%;
+  opacity:0.12;
+  pointer-events:none;
+}
+
+.fb-card.exact::before   { background:var(--green); border-color:rgba(0,230,118,0.4); }
+.fb-card.close::before   { background:var(--yellow); border-color:rgba(255,193,7,0.4); }
+.fb-card.wrong::before   { background:var(--red); border-color:rgba(255,59,59,0.4); }
+.fb-card.exact   { border-color:rgba(0,230,118,0.35); }
+.fb-card.close   { border-color:rgba(255,193,7,0.35); }
+.fb-card.wrong   { border-color:rgba(255,59,59,0.35); }
+
+/* Mini semáforo feedback */
+.fb-semaforo {
+  display: flex;
+  justify-content:center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.fb-sem-light {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  opacity: 0.2;
+  transition: opacity 0.3s, box-shadow 0.3s;
+}
+.fb-sem-light.lit-red    { background:var(--red);    opacity:1; box-shadow:0 0 14px var(--red-glow); }
+.fb-sem-light.lit-yellow { background:var(--yellow);  opacity:1; box-shadow:0 0 14px var(--yellow-glow); }
+.fb-sem-light.lit-green  { background:var(--green);   opacity:1; box-shadow:0 0 14px var(--green-glow); }
+
+.fb-verdict {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1rem; letter-spacing:4px; text-transform:uppercase;
+  margin-bottom:6px;
+}
+.fb-verdict.exact { color:var(--green); }
+.fb-verdict.close { color:var(--yellow); }
+.fb-verdict.wrong { color:var(--red); }
+
+.fb-title { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:1px; margin-bottom:10px; }
+
+.fb-answer-label {
+  display: inline-flex; align-items:center; gap:8px;
+  padding: 6px 14px; border-radius:30px;
+  font-size:0.8rem; font-weight:700; margin-bottom:14px;
+}
+.fb-answer-label.green  { background:var(--green-dim); color:var(--green); border:1px solid rgba(0,230,118,0.3); }
+.fb-answer-label.yellow { background:var(--yellow-dim); color:var(--yellow); border:1px solid rgba(255,193,7,0.3); }
+.fb-answer-label.red    { background:var(--red-dim); color:var(--red); border:1px solid rgba(255,59,59,0.3); }
+
+.fb-explanation { font-size:0.87rem; color:#888; line-height:1.65; margin-bottom:16px; }
+
+.fb-tip {
+  background:#111; border:1px solid #2a2a2a;
+  border-radius:10px; padding:12px 14px;
+  font-size:0.8rem; color:#aaa; text-align:left; line-height:1.5;
+  margin-bottom:20px;
+}
+.fb-tip::before { content:'💡 '; }
+
+.fb-pts {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.3rem; margin-bottom:16px;
+}
+.fb-pts.green  { color:var(--green); }
+.fb-pts.yellow { color:var(--yellow); }
+.fb-pts.red    { color:var(--red); }
+
+.btn-next {
+  background: #222; border:1px solid #333;
+  color:var(--text); font-family:'DM Sans',sans-serif;
+  font-weight:700; font-size:0.95rem;
+  padding:13px 40px; border-radius:50px;
+  cursor:pointer; transition:all 0.2s;
+}
+.btn-next:hover { background:#2a2a2a; transform:translateY(-2px); }
+
+/* ══ PANTALLA RESULTADO ═══════════════════════════════════ */
+#screen-result {
+  display:none; flex-direction:column; align-items:center;
+  justify-content:center; min-height:100vh;
+  padding:40px 20px; gap:28px; text-align:center;
+  position:relative; z-index:1;
+}
+
+.result-tl {
+  display:flex; gap:14px; justify-content:center;
+}
+
+.result-tl-dot {
+  width:38px; height:38px; border-radius:50%;
+}
+
+.res-score {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(3.5rem,12vw,7rem); line-height:1;
+}
+
+.res-sublabel {
+  font-size:0.65rem; letter-spacing:4px;
+  text-transform:uppercase; color:var(--muted);
+  margin-top:4px;
+}
+
+.res-message { font-size:1rem; color:#888; max-width:360px; line-height:1.65; }
+
+.stats-row {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:10px; width:100%; max-width:500px;
+}
+
+.stat-box {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:12px; padding:14px 8px;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+}
+
+.stat-val {
+  font-family:'Bebas Neue',sans-serif; font-size:1.8rem; line-height:1;
+}
+.stat-lbl { font-size:0.6rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); text-align:center; }
+
+.btn-restart {
+  background:transparent; border:1.5px solid #333;
+  color:var(--text); font-family:'DM Sans',sans-serif;
+  font-weight:700; font-size:1rem;
+  padding:14px 44px; border-radius:50px;
+  cursor:pointer; transition:all 0.2s;
+}
+.btn-restart:hover { border-color:#555; transform:translateY(-2px); }
+
+/* Partículas */
+.particle {
+  position:fixed; pointer-events:none; z-index:300;
+  font-size:22px; animation:pfly 1s ease-out forwards;
+}
+@keyframes pfly {
+  from{opacity:1;transform:translateY(0) scale(1);}
+  to{opacity:0;transform:translateY(-130px) scale(0.2);}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ PANTALLA INICIO ══════════════════════════════ -->
+<div id="screen-start">
+
+  <div class="traffic-light-deco">
+    <div class="tl-box">
+      <div class="tl-light red-on" id="deco-r"></div>
+      <div class="tl-light yellow-on" id="deco-y"></div>
+      <div class="tl-light green-on" id="deco-g"></div>
+    </div>
+    <div class="tl-pole"></div>
+  </div>
+
+  <div class="brand">
+    <span class="r">SEM</span><span class="y">ÁFO</span><span class="g">RO</span><br>
+    <span style="color:#fff;letter-spacing:3px;font-size:0.55em">VISUAL</span>
+  </div>
+
+  <p class="tagline">Clasifica cada acción según su impacto en la salud de tus ojos usando el semáforo de tres niveles.</p>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot red"></div>
+      <div class="legend-text">
+        <strong style="color:var(--red)">🔴 ROJO — Peligroso</strong>
+        <span>Hábito que daña directamente tus ojos. Evítalo.</span>
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot yellow"></div>
+      <div class="legend-text">
+        <strong style="color:var(--yellow)">🟡 AMARILLO — Precaución</strong>
+        <span>Puede ser aceptable con moderación o condiciones específicas.</span>
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot green"></div>
+      <div class="legend-text">
+        <strong style="color:var(--green)">🟢 VERDE — Recomendado</strong>
+        <span>Protege o beneficia activamente tu visión.</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="startGame()">COMENZAR →</button>
+</div>
+
+<!-- ══ PANTALLA JUEGO ══════════════════════════════ -->
+<div id="screen-game">
+
+  <div class="hud">
+    <div class="hud-block">
+      <span class="hud-label">Puntos</span>
+      <span class="hud-val green" id="score-val">0</span>
+    </div>
+    <div class="timer-wrap">
+      <svg class="timer-svg" viewBox="0 0 56 56">
+        <circle class="t-bg" cx="28" cy="28" r="26"/>
+        <circle class="t-ring" id="t-ring" cx="28" cy="28" r="26"/>
+      </svg>
+      <div class="timer-num" id="t-num">15</div>
+    </div>
+    <div class="hud-block">
+      <span class="hud-label">Vidas</span>
+      <div class="lives-row" id="lives-row">❤️❤️❤️</div>
+    </div>
+  </div>
+
+  <div class="prog-wrap">
+    <div class="prog-label" id="prog-label">Pregunta 1 de 12</div>
+    <div class="prog-bar">
+      <div class="prog-fill" id="prog-fill" style="width:0%; background:var(--green);"></div>
+    </div>
+  </div>
+
+  <div class="game-layout">
+
+    <!-- Semáforo lateral -->
+    <div class="semaforo-game">
+      <div class="sg-box">
+        <div class="sg-light" id="sg-r"></div>
+        <div class="sg-light" id="sg-y"></div>
+        <div class="sg-light" id="sg-g"></div>
+      </div>
+      <div class="sg-pole"></div>
+    </div>
+
+    <!-- Columna derecha -->
+    <div class="card-col">
+      <div class="game-card" id="game-card">
+        <div class="card-glow-ring" id="card-glow"></div>
+        <div class="card-inner">
+          <span class="card-emoji" id="card-emoji">👁️</span>
+          <div class="card-cat" id="card-cat">// Cargando</div>
+          <div class="card-title" id="card-title">Preparando pregunta...</div>
+          <div class="card-desc" id="card-desc"></div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-sem btn-red" onclick="classify('red')">
+          <div class="dot"></div>
+          PELIGROSO
+        </button>
+        <button class="btn-sem btn-yellow" onclick="classify('yellow')">
+          <div class="dot"></div>
+          PRECAUCIÓN
+        </button>
+        <button class="btn-sem btn-green" onclick="classify('green')">
+          <div class="dot"></div>
+          SEGURO
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ OVERLAY FEEDBACK ══════════════════════════ -->
+<div class="feedback-overlay" id="feedback-overlay">
+  <div class="fb-card" id="fb-card">
+    <div class="fb-semaforo">
+      <div class="fb-sem-light" id="fb-r" style="background:var(--red)"></div>
+      <div class="fb-sem-light" id="fb-y" style="background:var(--yellow)"></div>
+      <div class="fb-sem-light" id="fb-g" style="background:var(--green)"></div>
+    </div>
+
+    <div class="fb-verdict" id="fb-verdict">EXACTO</div>
+    <div class="fb-title" id="fb-title">Título</div>
+
+    <div class="fb-answer-label" id="fb-answer-label">
+      <span id="fb-dot-icon">●</span>
+      <span id="fb-answer-text">Respuesta correcta</span>
+    </div>
+
+    <div class="fb-explanation" id="fb-explanation">Explicación.</div>
+    <div class="fb-tip" id="fb-tip">Tip.</div>
+    <div class="fb-pts" id="fb-pts">+100 PTS</div>
+
+    <button class="btn-next" onclick="nextQ()">Continuar →</button>
+  </div>
+</div>
+
+<!-- ══ PANTALLA RESULTADO ══════════════════════════ -->
+<div id="screen-result">
+  <div class="result-tl" id="result-tl"></div>
+  <div class="res-score" id="res-score">0</div>
+  <div class="res-sublabel">PUNTOS TOTALES</div>
+  <p class="res-message" id="res-message"></p>
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-val" id="st-exact" style="color:var(--green)">0</div>
+      <div class="stat-lbl">Exactos</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="st-close" style="color:var(--yellow)">0</div>
+      <div class="stat-lbl">Cercanos</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="st-wrong" style="color:var(--red)">0</div>
+      <div class="stat-lbl">Incorrectos</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="st-pct">0%</div>
+      <div class="stat-lbl">Precisión</div>
+    </div>
+  </div>
+  <button class="btn-restart" onclick="restartGame()">↺ Jugar de nuevo</button>
+</div>
+
+<script>
+// ── PREGUNTAS CON NIVEL DE SEMÁFORO ───────────────────────────────────────
+// color: 'red' | 'yellow' | 'green'
+const QUESTIONS = [
+  {
+    emoji:"📱", cat:"Pantallas",
+    title:"Celular en oscuridad total",
+    desc:"Usar el teléfono con brillo máximo en cuarto completamente oscuro.",
+    color:"red",
+    explanation:"El contraste extremo fuerza los músculos oculares constantemente, causando fatiga visual severa, cefalea y miopía progresiva en uso crónico.",
+    tip:"Mantén siempre luz ambiental al usar pantallas. El brillo automático es tu aliado."
+  },
+  {
+    emoji:"☀️", cat:"Luz solar",
+    title:"Salir sin protección UV",
+    desc:"Exponerte al sol directo sin gafas ni protección ocular durante horas.",
+    color:"red",
+    explanation:"La radiación UV acumula daño irreversible en córnea, cristalino y retina. Es la principal causa prevenible de cataratas y degeneración macular.",
+    tip:"Gafas con filtro UV400 son obligatorias en exteriores. El color oscuro del lente no garantiza protección UV."
+  },
+  {
+    emoji:"🚬", cat:"Hábitos",
+    title:"Fumar regularmente",
+    desc:"Consumir tabaco de forma habitual.",
+    color:"red",
+    explanation:"El tabaco reduce el flujo sanguíneo a la retina, duplica el riesgo de cataratas y triplica el de degeneración macular. Daño progresivo e irreversible.",
+    tip:"Dejar de fumar mejora la microcirculación ocular en semanas. Es la mejor decisión ocular que puedes tomar."
+  },
+  {
+    emoji:"✋", cat:"Higiene",
+    title:"Frotarse los ojos con fuerza",
+    desc:"Rascarse repetidamente los ojos al sentir picazón o cansancio.",
+    color:"red",
+    explanation:"Transfiere bacterias, rompe vasos sanguíneos, irrita la conjuntiva y puede deformar la córnea (queratocono) con fricción crónica.",
+    tip:"Frío o lágrimas artificiales para el picor. Manos limpias si debes tocar el ojo."
+  },
+  {
+    emoji:"👓", cat:"Corrección visual",
+    title:"Lentes de graduación incorrecta",
+    desc:"Usar gafas de otra persona o con graduación desactualizada más de 2 años.",
+    color:"red",
+    explanation:"El ojo compensa la graduación errónea contrayendo el músculo ciliar permanentemente, generando fatiga, dolores de cabeza y empeoramiento de la miopía en jóvenes.",
+    tip:"Actualiza tu graduación cada 12–18 meses o ante cualquier cambio de visión."
+  },
+  {
+    emoji:"📺", cat:"Pantallas",
+    title:"Ver TV a 3 metros en sala iluminada",
+    desc:"Ver televisión a distancia normal con algo de luz ambiental en la habitación.",
+    color:"yellow",
+    explanation:"A distancia adecuada y con luz ambiental, el impacto en la visión es moderado. Sin embargo, sin descansos periódicos sí acumula fatiga ocular.",
+    tip:"Aplica la regla 20-20-20: cada 20 min de pantalla, mira algo a 6m por 20 segundos."
+  },
+  {
+    emoji:"🌙", cat:"Pantallas",
+    title:"Modo nocturno en el celular",
+    desc:"Usar el filtro de luz azul y brillo reducido en el teléfono por la noche.",
+    color:"yellow",
+    explanation:"Reduce el estímulo de luz azul que altera el ritmo circadiano, pero no elimina la fatiga ocular. Es mejor que nada, pero lo ideal es evitar pantallas 1h antes de dormir.",
+    tip:"El modo nocturno ayuda al sueño más que a los ojos. Combínalo con reducir el tiempo de uso nocturno."
+  },
+  {
+    emoji:"🏊", cat:"Actividades",
+    title:"Nadar sin gafas de natación",
+    desc:"Abrir los ojos bajo el agua de piscina sin protección.",
+    color:"yellow",
+    explanation:"El cloro irrita la conjuntiva y elimina la película lagrimal. No causa daño permanente en exposiciones cortas, pero con frecuencia puede generar conjuntivitis crónica.",
+    tip:"Las gafas de natación son baratas y eliminan completamente el riesgo. Úsalas siempre."
+  },
+  {
+    emoji:"📖", cat:"Hábitos",
+    title:"Leer en movimiento (bus, auto)",
+    desc:"Leer libro o celular mientras el vehículo se mueve.",
+    color:"yellow",
+    explanation:"El ojo trabaja constantemente para reenfocar ante el movimiento impredecible. No daña la vista permanentemente, pero genera fatiga visual y náuseas significativas.",
+    tip:"Audiolibros o podcasts son la alternativa perfecta en transporte."
+  },
+  {
+    emoji:"💧", cat:"Hidratación",
+    title:"Usar lágrimas artificiales",
+    desc:"Aplicar gotas lubricantes ante sequedad o irritación ocular.",
+    color:"green",
+    explanation:"Reponen la película lagrimal, reducen la inflamación y protegen la córnea. Son seguras para uso diario y esenciales en ambientes secos o con uso intensivo de pantallas.",
+    tip:"Elige fórmulas sin conservantes si las usas más de 4 veces al día."
+  },
+  {
+    emoji:"😴", cat:"Descanso",
+    title:"Dormir 7–8 horas cada noche",
+    desc:"Mantener un horario de sueño regular y completo.",
+    color:"green",
+    explanation:"Durante el sueño, la córnea recibe oxígeno, los tejidos oculares se reparan y el sistema linfático limpia residuos celulares. La privación causa ojo rojo e inflamación.",
+    tip:"El ojo seco matutino crónico casi siempre indica sueño insuficiente o de mala calidad."
+  },
+  {
+    emoji:"🥕", cat:"Nutrición",
+    title:"Dieta rica en luteína y vitamina A",
+    desc:"Comer zanahoria, espinaca, brócoli, huevos y pescado graso regularmente.",
+    color:"green",
+    explanation:"La vitamina A es indispensable para la visión nocturna y la integridad corneal. Luteína y zeaxantina protegen la mácula de la luz azul y la degeneración.",
+    tip:"Los arándanos y el salmón también son potentes protectores oculares. Varía la dieta."
+  },
+  {
+    emoji:"⏰", cat:"Ergonomía",
+    title:"Regla 20-20-20 aplicada",
+    desc:"Cada 20 minutos de pantalla, mirar a 6 metros durante 20 segundos.",
+    color:"green",
+    explanation:"Relaja el músculo ciliar del ojo que se contrae al enfocar de cerca. Reduce la fatiga ocular, los dolores de cabeza y los síntomas del síndrome visual por computadora.",
+    tip:"Pon una alarma. Es el hábito con mejor relación costo-beneficio para tu vista."
+  },
+  {
+    emoji:"🏃", cat:"Ejercicio",
+    title:"Actividad aeróbica regular",
+    desc:"Caminar, correr o nadar 30 min al menos 3 veces por semana.",
+    color:"green",
+    explanation:"Mejora la circulación sanguínea en la retina y el nervio óptico, y reduce la presión intraocular hasta un 25%, disminuyendo el riesgo de glaucoma.",
+    tip:"El ejercicio también previene la diabetes tipo 2, principal causa de ceguera prevenible en adultos."
+  },
+  {
+    emoji:"🔍", cat:"Prevención",
+    title:"Revisión oftalmológica anual",
+    desc:"Examen ocular completo aunque no sientas molestias ni cambios en la visión.",
+    color:"green",
+    explanation:"Glaucoma, retinopatía diabética y DMAE son asintomáticas en etapas tempranas. Detectarlas antes evita daño irreversible que no se recupera con tratamiento tardío.",
+    tip:"Mayores de 40 años: cada 6–12 meses. Diabéticos: obligatoria una vez al año sin excepción."
+  }
+];
+
+// ── PUNTUACIÓN POR RESULTADO ──────────────────────────────────────────────
+// exact = respuesta correcta, close = color adyacente, wrong = opuesto
+const POINTS = { exact: 100, close: 40, wrong: 0 };
+
+function resultType(userColor, correctColor) {
+  if (userColor === correctColor) return 'exact';
+  const order = ['red','yellow','green'];
+  const diff = Math.abs(order.indexOf(userColor) - order.indexOf(correctColor));
+  return diff === 1 ? 'close' : 'wrong';
+}
+
+// ── ESTADO ────────────────────────────────────────────────────────────────
+let gs = {};
+const TOTAL = 12, TIMER_SEC = 15;
+const CIRCUM = 2 * Math.PI * 26;
+
+function shuffle(arr) {
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function startGame() {
+  gs = {
+    questions: shuffle(QUESTIONS).slice(0, TOTAL),
+    idx: 0, score: 0, lives: 3,
+    exact: 0, close: 0, wrong: 0,
+    answered: false, timer: null, timeLeft: TIMER_SEC
+  };
+  document.getElementById('screen-start').style.display='none';
+  document.getElementById('screen-result').style.display='none';
+  document.getElementById('screen-game').style.display='flex';
+  loadQ();
+}
+
+function loadQ() {
+  const q = gs.questions[gs.idx];
+  gs.answered = false;
+
+  updateHUD();
+  document.getElementById('prog-label').textContent = `Pregunta ${gs.idx+1} de ${TOTAL}`;
+  document.getElementById('prog-fill').style.width = (gs.idx/TOTAL*100)+'%';
+
+  document.getElementById('card-emoji').textContent = q.emoji;
+  document.getElementById('card-cat').textContent = `// ${q.cat}`;
+  document.getElementById('card-title').textContent = q.title;
+  document.getElementById('card-desc').textContent = q.desc;
+
+  // Reset semáforo lateral
+  setSemLight(null);
+
+  const card = document.getElementById('game-card');
+  card.classList.remove('card-enter');
+  void card.offsetWidth;
+  card.classList.add('card-enter');
+
+  startTimer();
+}
+
+function setSemLight(color) {
+  document.getElementById('sg-r').className='sg-light'+(color==='red'?' active-red':'');
+  document.getElementById('sg-y').className='sg-light'+(color==='yellow'?' active-yellow':'');
+  document.getElementById('sg-g').className='sg-light'+(color==='green'?' active-green':'');
+}
+
+function startTimer() {
+  clearInterval(gs.timer);
+  gs.timeLeft = TIMER_SEC;
+  updateTimerUI(TIMER_SEC);
+  gs.timer = setInterval(()=>{
+    gs.timeLeft--;
+    updateTimerUI(gs.timeLeft);
+    if(gs.timeLeft<=0){ clearInterval(gs.timer); if(!gs.answered) timeOut(); }
+  }, 1000);
+}
+
+function updateTimerUI(t) {
+  document.getElementById('t-num').textContent = t;
+  const r = document.getElementById('t-ring');
+  r.style.strokeDashoffset = CIRCUM*(1-t/TIMER_SEC);
+  r.style.stroke = t<=5?'var(--red)':t<=9?'var(--yellow)':'var(--green)';
+}
+
+function updateHUD() {
+  document.getElementById('score-val').textContent = gs.score;
+  document.getElementById('lives-row').textContent = '❤️'.repeat(gs.lives)+'🖤'.repeat(3-gs.lives);
+}
+
+function classify(userColor) {
+  if(gs.answered) return;
+  gs.answered = true;
+  clearInterval(gs.timer);
+
+  const q = gs.questions[gs.idx];
+  const rtype = resultType(userColor, q.color);
+
+  // Iluminar semáforo con color elegido
+  setSemLight(userColor);
+
+  // Puntaje y estadísticas
+  if(rtype==='exact'){
+    const bonus = Math.ceil(gs.timeLeft*(POINTS.exact/TIMER_SEC));
+    gs.score += Math.max(bonus, 40); gs.exact++;
+    spawnParticles(userColor);
+  } else if(rtype==='close'){
+    gs.score += POINTS.close; gs.close++;
+  } else {
+    gs.lives--; gs.wrong++;
+    document.getElementById('game-card').classList.add('card-shake');
+    setTimeout(()=>document.getElementById('game-card').classList.remove('card-shake'),400);
+  }
+
+  updateHUD();
+  showFeedback(q, userColor, rtype);
+}
+
+function timeOut() {
+  gs.lives--; gs.wrong++;
+  updateHUD();
+  const q = gs.questions[gs.idx];
+  showFeedback(q, null, 'wrong', true);
+}
+
+const COLOR_LABELS = { red:'🔴 PELIGROSO', yellow:'🟡 PRECAUCIÓN', green:'🟢 SEGURO' };
+const COLOR_CSS    = { red:'red', yellow:'yellow', green:'green' };
+
+function showFeedback(q, userColor, rtype, timedOut=false) {
+  // Mini semáforo
+  document.getElementById('fb-r').className='fb-sem-light'+(q.color==='red'?' lit-red':'');
+  document.getElementById('fb-y').className='fb-sem-light'+(q.color==='yellow'?' lit-yellow':'');
+  document.getElementById('fb-g').className='fb-sem-light'+(q.color==='green'?' lit-green':'');
+
+  // Veredicto
+  const verdictMap = {
+    exact:'✅ EXACTO', close:'⚠️ CERCANO', wrong: timedOut?'⏰ TIEMPO':'❌ INCORRECTO'
+  };
+  const fv = document.getElementById('fb-verdict');
+  fv.textContent = verdictMap[rtype];
+  fv.className = 'fb-verdict '+(rtype==='exact'?'exact':rtype==='close'?'close':'wrong');
+
+  document.getElementById('fb-title').textContent = q.title;
+
+  // Etiqueta respuesta correcta
+  const al = document.getElementById('fb-answer-label');
+  const cc = COLOR_CSS[q.color];
+  al.className = 'fb-answer-label '+cc;
+  document.getElementById('fb-answer-text').textContent = 'Correcto: '+COLOR_LABELS[q.color];
+
+  document.getElementById('fb-explanation').textContent = q.explanation;
+  document.getElementById('fb-tip').textContent = q.tip;
+
+  // Puntos ganados
+  const pts = document.getElementById('fb-pts');
+  if(rtype==='exact'){
+    pts.textContent = `+${Math.max(Math.ceil(gs.timeLeft*(POINTS.exact/TIMER_SEC)),40)} PTS`;
+    pts.className='fb-pts green';
+  } else if(rtype==='close'){
+    pts.textContent = `+${POINTS.close} PTS`;
+    pts.className='fb-pts yellow';
+  } else {
+    pts.textContent = timedOut?'¡Tiempo agotado!':'-1 VIDA';
+    pts.className='fb-pts red';
+  }
+
+  // Clase tarjeta
+  document.getElementById('fb-card').className='fb-card '+(rtype==='exact'?'exact':rtype==='close'?'close':'wrong');
+
+  document.getElementById('feedback-overlay').classList.add('show');
+}
+
+function nextQ() {
+  document.getElementById('feedback-overlay').classList.remove('show');
+  gs.idx++;
+  if(gs.lives<=0 || gs.idx>=TOTAL) endGame();
+  else loadQ();
+}
+
+function endGame() {
+  document.getElementById('screen-game').style.display='none';
+  const sr=document.getElementById('screen-result');
+  sr.style.display='flex';
+
+  const pct=Math.round((gs.exact/TOTAL)*100);
+  document.getElementById('res-score').textContent=gs.score;
+  document.getElementById('st-exact').textContent=gs.exact;
+  document.getElementById('st-close').textContent=gs.close;
+  document.getElementById('st-wrong').textContent=gs.wrong;
+  document.getElementById('st-pct').textContent=pct+'%';
+
+  // Semáforo resultado visual
+  const tl=document.getElementById('result-tl');
+  const rdot=`<div class="result-tl-dot" style="background:var(--red);box-shadow:0 0 20px var(--red-glow)"></div>`;
+  const ydot=`<div class="result-tl-dot" style="background:var(--yellow);box-shadow:0 0 20px var(--yellow-glow)"></div>`;
+  const gdot=`<div class="result-tl-dot" style="background:var(--green);box-shadow:0 0 20px var(--green-glow)"></div>`;
+
+  let msg,dots;
+  if(pct>=83){
+    msg="Semáforo en verde. Tienes hábitos excelentes para tu salud ocular."; dots=gdot;
+    document.getElementById('res-score').style.color='var(--green)';
+  } else if(pct>=58){
+    msg="Semáforo en amarillo. Buenos hábitos, pero hay áreas de precaución que mejorar."; dots=ydot;
+    document.getElementById('res-score').style.color='var(--yellow)';
+  } else {
+    msg="Semáforo en rojo. Varios hábitos representan riesgo real para tu visión. Refuerza tu conocimiento."; dots=rdot;
+    document.getElementById('res-score').style.color='var(--red)';
+  }
+  tl.innerHTML=dots;
+  document.getElementById('res-message').textContent=msg;
+}
+
+function restartGame() {
+  document.getElementById('screen-result').style.display='none';
+  startGame();
+}
+
+function spawnParticles(color) {
+  const map={red:['🔴','💥'],yellow:['🟡','⚡'],green:['🟢','✨','⭐']};
+  const icons=map[color]||['✨'];
+  for(let i=0;i<6;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    p.textContent=icons[Math.floor(Math.random()*icons.length)];
+    p.style.left=(25+Math.random()*50)+'vw';
+    p.style.top=(35+Math.random()*30)+'vh';
+    p.style.animationDelay=(Math.random()*0.3)+'s';
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),1100);
+  }
+}
+
+// Animación semáforo decorativo en inicio
+(function animateDeco(){
+  const lights=[
+    {id:'deco-r',cls:'red-on'},
+    {id:'deco-y',cls:'yellow-on'},
+    {id:'deco-g',cls:'green-on'}
+  ];
+  let cur=0;
+  function pulse(){
+    lights.forEach(l=>{
+      const el=document.getElementById(l.id);
+      if(el) el.className='tl-light off';
+    });
+    const el=document.getElementById(lights[cur].id);
+    if(el) el.className='tl-light '+lights[cur].cls;
+    cur=(cur+1)%lights.length;
+  }
+  pulse();
+  setInterval(pulse,900);
+})();
+</script>
+</body>
+</html>
